@@ -19,12 +19,12 @@ import numpy as np
 start_time = time.time()
 #==============================================================================
 
-ROUND = 30000 # (pokemon get + poke stop) * ROUND
+ROUND = 300000 # (pokemon get + poke stop) * ROUND
 
 IS_RESET_LOCATION = True # If True, reset location using initial location
 RESET_LOCATION_ROUND = 30
 
-STEP = 9 # 11.52km/h
+STEP = 9 # 32.52km/h
 
 IS_TELEPORT = False # If True, when reached RESET_LOCATION_ROUND, go to TELEPORT_SPOTS
                     # If False, go to initial location
@@ -56,7 +56,7 @@ elif raw == 'n':
 else:
     raise Exception('input y/n')
 
-raw = raw_input('RANDOM_ACCESS to Pokestop??(y/n) >>>')
+raw = raw_input('RANDOM ACCESS to Pokestop??(y/n) >>>')
 if raw == 'y':
     RANDOM_ACCESS = True # If True, not to try to catch Pokemon
     MODE += '(Random access)'
@@ -146,54 +146,41 @@ def findBestPokemon(session):
 # Wrap both for ease
 def encounterAndCatch(session, pokemon, thresholdP=0.5, limit=5, delay=2):
     # Start encounter
-    encounter = session.encounterPokemon(pokemon)
-
-    # Grab needed data from proto
-    chances = encounter.capture_probability.capture_probability
-    balls = encounter.capture_probability.pokeball_type
-    bag = session.checkInventory().bag
-
+    session.encounterPokemon(pokemon)
+    
     # Have we used a razz berry yet?
     berried = False
 
-    # Make sure we aren't oer limit
+    # Make sure we aren't over limit
     count = 0
 
     # Attempt catch
     while True:
-        bestBall = items.UNKNOWN
-        altBall = items.UNKNOWN
+        #initialize inventory
+        bag = session.checkInventory().bag
+        
+        # try a berry
+        if not berried and items.RAZZ_BERRY in bag and bag[items.RAZZ_BERRY]:
+            logging.info("Using a RAZZ_BERRY")
+            session.useItemCapture(items.RAZZ_BERRY, pokemon)
+            berried = True
+            time.sleep(delay)
+            continue
+        
+        # Get ball list
+        balls = [items.POKE_BALL] * bag[items.POKE_BALL] + \
+                [items.GREAT_BALL] * bag[items.GREAT_BALL] + \
+                [items.ULTRA_BALL] * bag[items.ULTRA_BALL]
 
-        # Check for balls and see if we pass
-        # wanted threshold
-        for i in range(len(balls)):
-            if balls[i] in bag:
-                altBall = balls[i]
-                if chances[i] > thresholdP:
-                    bestBall = balls[i]
-                    break
-
-        # If we can't determine a ball, try a berry
-        # or use a lower class ball
-        if bestBall == items.UNKNOWN:
-            if not berried and items.RAZZ_BERRY in bag and bag[items.RAZZ_BERRY]:
-                logging.info("Using a RAZZ_BERRY")
-                session.useItemCapture(items.RAZZ_BERRY, pokemon)
-                berried = True
-                time.sleep(delay)
-                continue
-
-            # if no alt ball, there are no balls
-            elif altBall == items.UNKNOWN:
-                print "Out of usable balls"
-                break #TODO: ???
-#                raise GeneralPogoException("Out of usable balls")
-            else:
-                bestBall = altBall
+        # Choose ball with randomness
+        # if no balls, there are no balls in bag
+        if len(balls) == 0:
+            print "Out of usable balls"
+            break
+        else:
+            bestBall = np.random.choice(balls)
 
         # Try to catch it!!
-        print bestBall
-#        bestBall = 1
         logging.info("Using a %s" % items[bestBall])
         attempt = session.catchPokemon(pokemon, bestBall)
         time.sleep(delay)
@@ -317,47 +304,45 @@ def setEgg(session):
     incubator = inventory.incubators[0]
     return session.setEgg(incubator, egg)
 
-
-# Understand this function before you run it.
-# Otherwise you may flush pokemon you wanted.
-def cleanPokemon(session, thresholdCP=50):
-    logging.info("Cleaning out Pokemon...")
+def evolvePokemon(session):
     party = session.checkInventory().party
-    evolables = [pokedex.PIDGEY, pokedex.RATTATA, pokedex.ZUBAT]
-    toEvolve = {evolve: [] for evolve in evolables}
-    for pokemon in party:
-        # If low cp, throw away
-        if pokemon.cp < thresholdCP:
-            # It makes more sense to evolve some,
-            # than throw away
-            if pokemon.pokemon_id in evolables:
-                toEvolve[pokemon.pokemon_id].append(pokemon)
-                continue
-
-            # Get rid of low CP, low evolve value
-            logging.info("Releasing %s" % pokedex[pokemon.pokemon_id])
-            session.releasePokemon(pokemon)
-
-    # Evolve those we want
+    # You may edit this list
+    evolables = [pokedex.PIDGEY, pokedex.RATTATA, pokedex.ZUBAT, 
+                 pokedex.CATERPIE, pokedex.WEEDLE, 
+                 pokedex.DODUO]
+    
     for evolve in evolables:
-        candies = session.checkInventory().candies[evolve]
-        pokemons = toEvolve[evolve]
-        # release for optimal candies
-        while candies // pokedex.evolves[evolve] < len(pokemons):
-            pokemon = pokemons.pop()
-            logging.info("Releasing %s" % pokedex[pokemon.pokemon_id])
-            session.releasePokemon(pokemon)
-            time.sleep(1)
-            candies += 1
-
-        # evolve remainder
-        for pokemon in pokemons:
+        pokemons = [pokemon for pokemon in party if evolve == pokemon.pokemon_id]
+        candies_current = session.checkInventory().candies[evolve]
+        candies_needed = pokedex.evolves[evolve]
+        
+        i = 0
+        while i != len(pokemons) and candies_needed < candies_current:
+            pokemon = pokemons[i]
             logging.info("Evolving %s" % pokedex[pokemon.pokemon_id])
             logging.info(session.evolvePokemon(pokemon))
             time.sleep(1)
             session.releasePokemon(pokemon)
             time.sleep(1)
-
+            candies_current -= candies_needed
+            i +=1
+    
+def releasePokemon(session, threasholdCP=500):
+    party = session.checkInventory().party
+    
+    for pokemon in party:
+        # If low cp, throw away
+        if pokemon.cp < threasholdCP:
+            # Get rid of low CP, low evolve value
+            logging.info("Releasing %s" % pokedex[pokemon.pokemon_id])
+            session.releasePokemon(pokemon)
+            
+# Understand this function before you run it.
+# Otherwise you may flush pokemon you wanted.
+def cleanPokemon(session):
+    logging.info("Cleaning out Pokemon...")
+    evolvePokemon(session)
+    releasePokemon(session, threasholdCP=500)
 
 def cleanInventory(session):
     logging.info("Cleaning out Inventory...")
@@ -445,7 +430,7 @@ if __name__ == '__main__':
     # Location is not inherent in authentication
     # But is important to session
     if POKESTOP_MARATHON:
-        raw = raw_input('START with ginza??(y/n) >>>')
+        raw = raw_input('START from Ginza??(y/n) >>>')
         if raw == 'y':
             raw = True # If True, not to try to catch Pokemon
         elif raw == 'n':
@@ -462,7 +447,7 @@ if __name__ == '__main__':
         # General
         getProfile(session)
         getInventory(session)
-        
+        cleanInventory(session)
         setEgg(session)
 
         for i in range(ROUND):
@@ -478,10 +463,12 @@ if __name__ == '__main__':
                 if IS_TELEPORT:
                     args.location = np.random.choice(TELEPORT_SPOTS)
                 print 'RESET LOCATION:',args.location
-                session = poko_session.authenticate(args.location)
+                lat, lon = map(float,args.location.split(','))
+                session.walkTo(lat, lon, step=STEP*np.random.uniform(0.95,1.05))
             
             # Pokemon related
             if not POKESTOP_MARATHON:
+                #cleanPokemon(session) # BE SURE TO COMFIRM IF IT'S OK TO RUN THIS!
                 pokemon = findBestPokemon(session)
                 walkAndCatch(session, pokemon)
     
@@ -490,6 +477,7 @@ if __name__ == '__main__':
             walkAndSpin(session, fort)
             
             if i%50==0:
+                cleanInventory(session)
                 setEgg(session)
 
         # see simpleBot() for logical usecases
