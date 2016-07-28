@@ -15,7 +15,6 @@ from POGOProtos.Networking.Requests.Messages import UseItemCaptureMessage_pb2
 from POGOProtos.Networking.Requests.Messages import DownloadSettingsMessage_pb2
 from POGOProtos.Networking.Requests.Messages import UseItemEggIncubatorMessage_pb2
 from POGOProtos.Networking.Requests.Messages import RecycleInventoryItemMessage_pb2
-from POGOProtos.Networking.Requests.Messages import NicknamePokemonMessage_pb2
 
 # Load local
 import api
@@ -27,6 +26,7 @@ from state import State
 import requests
 import logging
 import time
+from progressbar import ProgressBar
 
 # Hide errors (Yes this is terrible, but prettier)
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -42,9 +42,6 @@ class PogoSession(object):
         self.authProvider = authProvider
         self.accessToken = accessToken
         self.location = location
-        if self.location.noop:
-            logging.info("Limited functionality. No location provided")
-
         self._state = State()
 
         self.authTicket = None
@@ -194,7 +191,8 @@ class PogoSession(object):
             self._state.inventory.ParseFromString(res.returns[2])
             self._state.badges.ParseFromString(res.returns[3])
             self._state.settings.ParseFromString(res.returns[4])
-        except Exception as e:
+        except Exception as e: # TODO: ???
+            print res.returns
             logging.error(e)
             raise GeneralPogoException("Error parsing response. Malformed response")
 
@@ -350,13 +348,14 @@ class PogoSession(object):
     def catchPokemon(self, pokemon, pokeball=1):
 
         # Create request
+        # TODO: adjust parameter
         payload = [Request_pb2.Request(
             request_type=RequestType_pb2.CATCH_POKEMON,
             request_message=CatchPokemonMessage_pb2.CatchPokemonMessage(
                 encounter_id=pokemon.encounter_id,
                 pokeball=pokeball,
                 normalized_reticle_size=1.950,
-                spawn_point_id=pokemon.spawn_point_id,
+                spawn_point_guid=pokemon.spawn_point_id,
                 hit_pokemon=True,
                 spin_modifier=0.850,
                 normalized_hit_position=1.0
@@ -365,7 +364,7 @@ class PogoSession(object):
 
         # Send
         res = self.wrapAndRequest(payload)
-
+        
         # Parse
         self._state.catch.ParseFromString(res.returns[0])
 
@@ -475,34 +474,12 @@ class PogoSession(object):
         # Return everything
         return self._state.incubator
 
-    def nicknamePokemon(self, pokemon, nickname):
-        # Create request
-        payload = [Request_pb2.Request(
-            request_type=RequestType_pb2.NICKNAME_POKEMON,
-            request_message=NicknamePokemonMessage_pb2.NicknamePokemonMessage(
-                pokemon_id=pokemon.id,
-                nickname=nickname
-            ).SerializeToString()
-        )]
-
-        # Send
-        res = self.wrapAndRequest(payload)
-
-        # Parse
-        self._state.nickname.ParseFromString(res.returns[0])
-
-        # Return everything
-        return self._state.nickname
-
     # These act as more logical functions.
     # Might be better to break out seperately
     # Walk over to position in meters
     def walkTo(self, olatitude, olongitude, epsilon=10, step=7.5):
         if step >= epsilon:
             raise GeneralPogoException("Walk may never converge")
-
-        if self.location.noop:
-            raise GeneralPogoException("Location not set")
 
         # Calculate distance to position
         latitude, longitude, _ = self.getCoordinates()
@@ -519,6 +496,9 @@ class PogoSession(object):
         dLon = (longitude - olongitude) / divisions
 
         logging.info("Walking %f meters. This will take %f seconds..." % (dist, dist / step))
+        print '~'*5,round((dist/(dist / step))*3.6,3),'km/h','~'*5
+        dist_max = dist
+        p = ProgressBar(max_value=dist_max)
         while dist > epsilon:
             logging.debug("%f m -> %f m away", closest - dist, closest)
             latitude -= dLat
@@ -534,3 +514,5 @@ class PogoSession(object):
                 olatitude,
                 olongitude
             )
+            p.update(dist_max-dist)
+        p.update(dist_max)

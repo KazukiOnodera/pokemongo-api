@@ -15,6 +15,7 @@ from location import Location
 from pokedex import pokedex
 from inventory import items
 import numpy as np
+from progressbar import ProgressBar
 
 start_time = time.time()
 #==============================================================================
@@ -22,39 +23,39 @@ start_time = time.time()
 ROUND = 300000 # (pokemon get + poke stop) * ROUND
 
 IS_RESET_LOCATION = True # If True, reset location using initial location
+RESET_LOCATION_ROUND = 5
+
+STEP = 9.2 # 3,2==11.52km/h
+SLEEP = 100 # sec
+
+
+#==============================================================================
+# MODE select
+#==============================================================================
+print '=== MODE select ==='
+print '1: POKESTOP MARATHON'
+print '2: Catch and Pokestop'
+print '3: DRATINI MARATHON'
+print '4: PIDGEY MARATHON(not implemented yet)'
+
+
+raw = raw_input('Choose mode!(1~4) >>>')
+POKESTOP_MARATHON = False
+IS_RESET_LOCATION = True # If True, reset location using initial location
 RESET_LOCATION_ROUND = 30
-
-STEP = 9 # 32.52km/h
-
-IS_TELEPORT = False # If True, when reached RESET_LOCATION_ROUND, go to TELEPORT_SPOTS
-                    # If False, go to initial location
-
-#TELEPORT_SPOTS = ["35.698828091221095, 139.81614768505096",  #kinsi park
-#                  "35.6847861149, 139.71041500",             #gyoen
-#                  "35.64387036252, 139.68159198760",         #setagaya park
-#                  "35.673787818, 139.75635051",              #hibiya park
-#                  "35.671687337020, 139.6953570842",         #yoyogi park
-#                  ]
-
-TELEPORT_SPOTS = ["35.6717352739260, 139.764568805694",  #ginza
-                  "35.692158133974, 139.7709846496",     #kanda
-                  "35.66697194, 139.749805",             #toranomon
-                  ]
-
-
-#==============================================================================
-# raw input
-#==============================================================================
-
-raw = raw_input('POKESTOP MARATHON mode??(y/n) >>>')
-if raw == 'y':
+if raw == '1':
     POKESTOP_MARATHON = True # If True, not to try to catch Pokemon
     MODE = 'POKESTOP MARATHON mode'
-elif raw == 'n':
-    POKESTOP_MARATHON = False
+elif raw == '2':
     MODE = 'Catch and Pokestop mode'
+elif raw == '3':
+    RESET_LOCATION_ROUND = 10
+    MODE = 'DRATINI MARATHON mode'
+elif raw == '4':
+    MODE = 'PIDGEY MARATHON mode'
 else:
-    raise Exception('input y/n')
+    raise Exception('input (1~4)')
+MODENO = int(raw)
 
 raw = raw_input('RANDOM ACCESS to Pokestop??(y/n) >>>')
 if raw == 'y':
@@ -187,6 +188,7 @@ def encounterAndCatch(session, pokemon, thresholdP=0.5, limit=5, delay=2):
 
         # Success or run away
         if attempt.status == 1:
+            #TODO:print AA
             return attempt
 
         # CATCH_FLEE is bad news
@@ -342,7 +344,7 @@ def releasePokemon(session, threasholdCP=500):
 def cleanPokemon(session):
     logging.info("Cleaning out Pokemon...")
     evolvePokemon(session)
-    releasePokemon(session, threasholdCP=500)
+    releasePokemon(session, threasholdCP=600)
 
 def cleanInventory(session):
     logging.info("Cleaning out Inventory...")
@@ -409,10 +411,10 @@ if __name__ == '__main__':
     parser.add_argument("-a", "--auth", help="Auth Service", required=True)
     parser.add_argument("-u", "--username", help="Username", required=True)
     parser.add_argument("-p", "--password", help="Password", required=True)
-    parser.add_argument("-l", "--location", help="Location", required=True)
+    parser.add_argument("-l", "--location", help="Location")
     parser.add_argument("-g", "--geo_key", help="GEO API Secret")
     args = parser.parse_args()
-
+    
     print 'Check service'
     if args.auth not in ['ptc', 'google']:
         logging.error('Invalid auth service {}'.format(args.auth))
@@ -429,17 +431,16 @@ if __name__ == '__main__':
     print 'Authenticate with a given location'
     # Location is not inherent in authentication
     # But is important to session
-    if POKESTOP_MARATHON:
-        raw = raw_input('START from Ginza??(y/n) >>>')
-        if raw == 'y':
-            raw = True # If True, not to try to catch Pokemon
-        elif raw == 'n':
-            raw = False
-        else:
-            raise Exception('input y/n')
-    if POKESTOP_MARATHON and raw:
+    if MODENO == 3:
+        args.location = "35.64387036252, 139.6820211410"
+    elif MODENO == 4:
         args.location = "35.6717352739260, 139.764568805694"
+    elif args.location == None:
+        args.location = "35.6717352739260, 139.764568805694"
+    
+    #session start
     session = poko_session.authenticate(args.location)
+    session_start_time = time.time()
 
     # Time to show off what we can do
     if session:
@@ -454,21 +455,19 @@ if __name__ == '__main__':
             print '-='*40
             print 'ROUND:',i+1,'(/',ROUND,')'
             print 'MODE:',MODE
-            print 'elapsed time:',round((time.time()-start_time)/60,5),'min'
-            
+            print 'session time:',round((time.time()-session_start_time)/60,3),'min'
+            print 'elapsed time:',round((time.time()-start_time)/60,3),'min'
             print '-='*40
             
             # Reset location related
             if IS_RESET_LOCATION and i>0 and i%RESET_LOCATION_ROUND==0:
-                if IS_TELEPORT:
-                    args.location = np.random.choice(TELEPORT_SPOTS)
                 print 'RESET LOCATION:',args.location
                 lat, lon = map(float,args.location.split(','))
-                session.walkTo(lat, lon, step=STEP*np.random.uniform(0.95,1.05))
+                session.walkTo(lat, lon, step=STEP*np.random.uniform(0.95,1.05)*0.7)
             
             # Pokemon related
             if not POKESTOP_MARATHON:
-                #cleanPokemon(session) # BE SURE TO COMFIRM IF IT'S OK TO RUN THIS!
+                cleanPokemon(session) # BE SURE TO COMFIRM IF IT'S OK TO RUN THIS!
                 pokemon = findBestPokemon(session)
                 walkAndCatch(session, pokemon)
     
@@ -479,9 +478,19 @@ if __name__ == '__main__':
             if i%50==0:
                 cleanInventory(session)
                 setEgg(session)
-
-        # see simpleBot() for logical usecases
-        # eg. simpleBot(session)
+                
+            # Start new session
+            if round((time.time()-session_start_time)/60,3) > 15:
+                print 'Start new session...Please wait about',SLEEP,'sec'
+                SLEEP_ = SLEEP/2
+                j = 0
+                p = ProgressBar(max_value=SLEEP_)
+                while SLEEP_ > j:
+                    time.sleep(2)
+                    j +=1
+                    p.update(j)
+                session = poko_session.authenticate(args.location)
+                session_start_time = time.time()
 
     else:
         logging.critical('Session not created successfully')
