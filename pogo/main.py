@@ -20,7 +20,7 @@ from progressbar import ProgressBar
 start_time = time.time()
 #==============================================================================
 
-ROUND = 300000 # (pokemon get + poke stop) * ROUND
+ROUND = 30 # (pokemon get + poke stop) * ROUND
 
 STEP = 8.2 # 3,2==11.52km/h
 SLEEP = 100 # sec
@@ -42,6 +42,7 @@ POKESTOP_MARATHON = False
 IS_RESET_LOCATION = True # If True, reset location using initial location
 RESET_LOCATION_ROUND = 30
 pids = None
+MODENO = None
 if raw == '1':
     POKESTOP_MARATHON = True # If True, not to try to catch Pokemon
     MODE = 'POKESTOP MARATHON'
