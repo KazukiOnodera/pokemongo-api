@@ -22,7 +22,7 @@ start_time = time.time()
 
 ROUND = 300000 # (pokemon get + poke stop) * ROUND
 
-STEP = 5.2 # 3,2==11.52km/h
+STEP = 8.2 # 3,2==11.52km/h
 SLEEP = 100 # sec
 COOLDOWN = 2
 
@@ -34,13 +34,14 @@ print '1: POKESTOP MARATHON'
 print '2: Catch and Pokestop'
 print '3: DRATINI MARATHON'
 print '4: PIDGEY MARATHON(not implemented yet)'
-print '5: ?????? MARATHON(not implemented yet)'
+#print '5: ?????? MARATHON' #secret mode :)
 
 
-raw = raw_input('Choose mode!(1~5) >>>')
+raw = raw_input('Choose mode!(1~4) >>>')
 POKESTOP_MARATHON = False
 IS_RESET_LOCATION = True # If True, reset location using initial location
 RESET_LOCATION_ROUND = 30
+pids = None
 if raw == '1':
     POKESTOP_MARATHON = True # If True, not to try to catch Pokemon
     MODE = 'POKESTOP MARATHON'
@@ -52,10 +53,22 @@ elif raw == '3':
 elif raw == '4':
     MODE = 'PIDGEY MARATHON'
 elif raw == '5':
-    MODE = 'PIDGEY MARATHON'
+    raw = raw_input('Ok... input pokedex No.(csv)>>>')
+    try:
+        raw = map(int, raw.split(','))
+    except:
+        raise Exception('input pokedex No.')
+    if all(map(lambda x:1 <= x <= 151, raw)):
+        pids = raw[:]
+    else:
+        raise Exception('input pokedex No.')
+    MODE = ' & '.join(map(lambda x:pokedex[x],pids))+' MARATHON'
+    MODENO = 5
 else:
-    raise Exception('input (1~5)')
-MODENO = int(raw)
+    raise Exception('input (1~4)')
+
+if MODENO==None:
+    MODENO = int(raw)
 
 raw = raw_input('RANDOM ACCESS to Pokestop??(y/n) >>>')
 if raw == 'y':
@@ -99,7 +112,7 @@ def getProfile(session):
 
 
 # Grab the nearest pokemon details
-def findBestPokemon(session):
+def findBestPokemon(session, pids=None):
     # Get Map details and print pokemon
     logging.info("Finding Nearby Pokemon:")
     cells = session.getMapObjects()
@@ -116,31 +129,35 @@ def findBestPokemon(session):
             pokemonId = getattr(pokemon, "pokemon_id", None)
             if not pokemonId:
                 pokemonId = pokemon.pokemon_data.pokemon_id
-
-            # Find distance to pokemon
-            dist = Location.getDistance(
-                latitude,
-                longitude,
-                pokemon.latitude,
-                pokemon.longitude
-            )
-
-            # Log the pokemon found
-            logging.info("%s, %f meters away" % (
-                pokedex[pokemonId],
-                dist
-            ))
-
-            rarity = pokedex.getRarityById(pokemonId)
-            # Greedy for rarest
-            if rarity > best:
-                pokemonBest = pokemon
-                best = rarity
-                closest = dist
-            # Greedy for closest of same rarity
-            elif rarity == best and dist < closest:
-                pokemonBest = pokemon
-                closest = dist
+                
+            # If pids exist, only target those
+            if pids!=None and not pokemonId in pids:
+                pass
+            else:
+                # Find distance to pokemon
+                dist = Location.getDistance(
+                    latitude,
+                    longitude,
+                    pokemon.latitude,
+                    pokemon.longitude
+                )
+    
+                # Log the pokemon found
+                logging.info("%s, %f meters away" % (
+                    pokedex[pokemonId],
+                    dist
+                ))
+    
+                rarity = pokedex.getRarityById(pokemonId)
+                # Greedy for rarest
+                if rarity > best:
+                    pokemonBest = pokemon
+                    best = rarity
+                    closest = dist
+                # Greedy for closest of same rarity
+                elif rarity == best and dist < closest:
+                    pokemonBest = pokemon
+                    closest = dist
     return pokemonBest
 
 
@@ -188,7 +205,7 @@ def encounterAndCatch(session, pokemon, thresholdP=0.5, limit=5, delay=2):
 
         # Success or run away
         if attempt.status == 1:
-            #TODO:print AA
+            print pokedex.AA[pokemon.pokemon_data.pokemon_id]
             return attempt
 
         # CATCH_FLEE is bad news
@@ -483,6 +500,23 @@ if __name__ == '__main__':
                 time.sleep(2)
                 walkAndSpin(session, fort)
             
+                if i%50==0:
+                    cleanInventory(session)
+                    setEgg(session)
+                    
+                # Start new session
+                if round((time.time()-session_start_time)/60,3) > 15:
+                    print 'Start new session...Please wait about',SLEEP,'sec'
+                    SLEEP_ = SLEEP/2
+                    j = 0
+                    p = ProgressBar(max_value=SLEEP_)
+                    while SLEEP_ > j:
+                        time.sleep(2)
+                        j +=1
+                        p.update(j)
+                    session = poko_session.authenticate(args.location)
+                    session_start_time = time.time()
+                    
             # Catch problems and reauthenticate
             except GeneralPogoException as e:
                 logging.critical('GeneralPogoException raised: %s', e)
@@ -497,22 +531,6 @@ if __name__ == '__main__':
                 COOLDOWN *= 2
                 
             
-            if i%50==0:
-                cleanInventory(session)
-                setEgg(session)
-                
-            # Start new session
-            if round((time.time()-session_start_time)/60,3) > 15:
-                print 'Start new session...Please wait about',SLEEP,'sec'
-                SLEEP_ = SLEEP/2
-                j = 0
-                p = ProgressBar(max_value=SLEEP_)
-                while SLEEP_ > j:
-                    time.sleep(2)
-                    j +=1
-                    p.update(j)
-                session = poko_session.authenticate(args.location)
-                session_start_time = time.time()
 
     else:
         logging.critical('Session not created successfully')
