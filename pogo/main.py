@@ -491,7 +491,7 @@ if __name__ == '__main__':
                 # Pokemon related
                 if not POKESTOP_MARATHON:
                     cleanPokemon(session) # BE SURE TO COMFIRM IF IT'S OK TO RUN THIS!
-                    pokemon = findBestPokemon(session)
+                    pokemon = findBestPokemon(session, pids)
                     time.sleep(2)
                     walkAndCatch(session, pokemon)
         
