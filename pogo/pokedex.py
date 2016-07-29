@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import inspect
 
 
@@ -249,6 +250,191 @@ class Pokedex(dict):
             self.ZAPDOS: 0, self.MOLTRES: 0, self.DRATINI: 25, self.DRAGONAIR: 100, self.DRAGONITE: 0,
             self.MEWTWO: 0, self.MEW: 0
         }
+        self.AA = {
+            self.MISSINGNO: 0, 
+            self.BULBASAUR: 25, 
+            self.IVYSAUR: 100, 
+            self.VENUSAUR: 0,
+            self.CHARMANDER: 25, 
+            self.CHARMELEON: 100, 
+            self.CHARIZARD: 0, 
+            self.SQUIRTLE: 25,
+            self.WARTORTLE: 100, 
+            self.BLASTOISE: 0, 
+            self.CATERPIE: 12, 
+            self.METAPOD: 50,
+            self.BUTTERFREE: 0, 
+            self.WEEDLE: 12, 
+            self.KAKUNA: 50, 
+            self.BEEDRILL: 0, 
+            self.PIDGEY: 12,
+            self.PIDGEOTTO: 50, 
+            self.PIDGEOT: 0, 
+            self.RATTATA: 25, 
+            self.RATICATE: 0, 
+            self.SPEAROW: 50,
+            self.FEAROW: 0, 
+            self.EKANS: 50, 
+            self.ARBOK: 0, 
+            self.PIKACHU: 50, 
+            self.RAICHU: 0,
+            self.SANDSHREW: 50, 
+            self.SANDSLASH: 0, 
+            self.NIDORAN_FEMALE: 25, 
+            self.NIDORINA: 100,
+            self.NIDOQUEEN: 0, 
+            self.NIDORAN_MALE: 25, 
+            self.NIDORINO: 100, 
+            self.NIDOKING: 0,
+            self.CLEFAIRY: 50, 
+            self.CLEFABLE: 0, 
+            self.VULPIX: 50, 
+            self.NINETALES: 0, 
+            self.JIGGLYPUFF: 50,
+            self.WIGGLYTUFF: 0, 
+            self.ZUBAT: 50, 
+            self.GOLBAT: 0, 
+            self.ODDISH: 25, 
+            self.GLOOM: 100,
+            self.VILEPLUME: 0, 
+            self.PARAS: 50, 
+            self.PARASECT: 0, 
+            self.VENONAT: 50, 
+            self.VENOMOTH: 0,
+            self.DIGLETT: 50, 
+            self.DUGTRIO: 0, 
+            self.MEOWTH: 50, 
+            self.PERSIAN: 0, 
+            self.PSYDUCK: 50,
+            self.GOLDUCK: 0, 
+            self.MANKEY: 50, 
+            self.PRIMEAPE: 0, 
+            self.GROWLITHE: 50, 
+            self.ARCANINE: 0,
+            self.POLIWAG: 25, 
+            self.POLIWHIRL: 100, 
+            self.POLIWRATH: 0, 
+            self.ABRA: 25, 
+            self.KADABRA: 100,
+            self.ALAKAZAM: 0, 
+            self.MACHOP: 25, 
+            self.MACHOKE: 100, 
+            self.MACHAMP: 0, 
+            self.BELLSPROUT: 25,
+            self.WEEPINBELL: 100, 
+            self.VICTREEBEL: 0, 
+            self.TENTACOOL: 50, 
+            self.TENTACRUEL: 0,
+            self.GEODUDE: 25, 
+            self.GRAVELER: 100, 
+            self.GOLEM: 0, 
+            self.PONYTA: 50, 
+            self.RAPIDASH: 0,
+            self.SLOWPOKE: 50, 
+            self.SLOWBRO: 0, 
+            self.MAGNEMITE: 50, 
+            self.MAGNETON: 0, 
+            self.FARFETCHD: 0,
+            self.DODUO: 
+"""
+　　　　　／￣￣＼　　　　　　　　　　　／￣￣＼
+　　　　│　●　 　│　　　　　 　　　　│　　 ● │
+＜三三＞　　 　　│　　 　　　　　　　│　　　 ＜三三＞
+　　　　 ＼　　　　　＼　　　　　　　　／＿＿＿／
+　　　　　　￣￣￣＼ ＼　　　　　／ ／
+　　　　　　　　　　　／　￣￣￣￣ 　＼
+　　　　　　　　　　│　　　　　　　　　│
+　　　　　　　　　　│;;;;;　　   ;;;;;│
+　　　　　　　　　　│::::::::::::::::│
+　　　　　　　　　　　＼;;;;;;;;;;／
+　　　　　　　　　　　　　││　　││
+　　　　　　　　　　　　ﾊ爪爪　　爪爪ﾊ　　　
+
+""", 
+            self.DODRIO: 0, 
+            self.SEEL: 50, 
+            self.DEWGONG: 0, 
+            self.GRIMER: 50, 
+            self.MUK: 0,
+            self.SHELLDER: 50, 
+            self.CLOYSTER: 0, 
+            self.GASTLY: 25, 
+            self.HAUNTER: 100, 
+            self.GENGAR: 0,
+            self.ONIX: 0, 
+            self.DROWZEE: 50, 
+            self.HYPNO: 0, 
+            self.KRABBY: 50, 
+            self.KINGLER: 0, 
+            self.VOLTORB: 50,
+            self.ELECTRODE: 0, 
+            self.EXEGGCUTE: 50, 
+            self.EXEGGUTOR: 0, 
+            self.CUBONE: 50, 
+            self.MAROWAK: 0,
+            self.HITMONLEE: 0, 
+            self.HITMONCHAN: 0, 
+            self.LICKITUNG: 0, 
+            self.KOFFING: 50, 
+            self.WEEZING: 0,
+            self.RHYHORN: 50, 
+            self.RHYDON: 0, 
+            self.CHANSEY: 0, 
+            self.TANGELA: 0, 
+            self.KANGASKHAN: 0,
+            self.HORSEA: 50, 
+            self.SEADRA: 0, 
+            self.GOLDEEN: 50, 
+            self.SEAKING: 0, 
+            self.STARYU: 50, 
+            self.STARMIE: 0,
+            self.MR_MIME: 0, 
+            self.SCYTHER: 0, 
+            self.JYNX: 0, 
+            self.ELECTABUZZ: 0, 
+            self.MAGMAR: 0, 
+            self.PINSIR: 0,
+            self.TAUROS: 0, 
+            self.MAGIKARP: 400, 
+            self.GYARADOS: 0, 
+            self.LAPRAS: 0, 
+            self.DITTO: 0, 
+            self.EEVEE: 25,
+            self.VAPOREON: 0, 
+            self.JOLTEON: 0, 
+            self.FLAREON: 0, 
+            self.PORYGON: 0, 
+            self.OMANYTE: 50, 
+            self.OMASTAR: 0,
+            self.KABUTO: 50, 
+            self.KABUTOPS: 0, 
+            self.AERODACTYL: 0, 
+            self.SNORLAX: 0, 
+            self.ARTICUNO: 0,
+            self.ZAPDOS: 0, 
+            self.MOLTRES: 0, 
+            self.DRATINI: 
+"""
+　　　/|
+　　 / |_＿＿　　／)
+　　｜／ｏ　 ＼／ /
+　　 Y●　●　/　／)
+　　／￣￣＼ (　　/
+　 ｜　　　｜ ＼ ヽ
+　　＼＿＿／　 /＼〉
+　　　 /　　 ／
+　　　/⌒ヽ /
+|＼＿/　　| L_＿＿
+ヽ　丿　　|｜　　 ＼
+　＼|　　 | ＼＿　 ｜
+　　ヽ　　ヽ＿＿_／/
+　　　＼＿＿＿＿_／
+""", 
+            self.DRAGONAIR: 100, 
+            self.DRAGONITE: 0,
+            self.MEWTWO: 0, 
+            self.MEW: 0
+        }
 
     def getRarityByName(self, name):
         return self.RarityById(self[name])
@@ -270,3 +456,5 @@ class Rarity(object):
     MYTHIC = 7
 
 pokedex = Pokedex()
+
+#print pokedex.AA[147]
