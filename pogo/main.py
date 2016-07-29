@@ -22,12 +22,9 @@ start_time = time.time()
 
 ROUND = 300000 # (pokemon get + poke stop) * ROUND
 
-IS_RESET_LOCATION = True # If True, reset location using initial location
-RESET_LOCATION_ROUND = 5
-
-STEP = 9.2 # 3,2==11.52km/h
+STEP = 5.2 # 3,2==11.52km/h
 SLEEP = 100 # sec
-
+COOLDOWN = 2
 
 #==============================================================================
 # MODE select
@@ -37,24 +34,27 @@ print '1: POKESTOP MARATHON'
 print '2: Catch and Pokestop'
 print '3: DRATINI MARATHON'
 print '4: PIDGEY MARATHON(not implemented yet)'
+print '5: ?????? MARATHON(not implemented yet)'
 
 
-raw = raw_input('Choose mode!(1~4) >>>')
+raw = raw_input('Choose mode!(1~5) >>>')
 POKESTOP_MARATHON = False
 IS_RESET_LOCATION = True # If True, reset location using initial location
 RESET_LOCATION_ROUND = 30
 if raw == '1':
     POKESTOP_MARATHON = True # If True, not to try to catch Pokemon
-    MODE = 'POKESTOP MARATHON mode'
+    MODE = 'POKESTOP MARATHON'
 elif raw == '2':
-    MODE = 'Catch and Pokestop mode'
+    MODE = 'Catch and Pokestop'
 elif raw == '3':
     RESET_LOCATION_ROUND = 10
-    MODE = 'DRATINI MARATHON mode'
+    MODE = 'DRATINI MARATHON'
 elif raw == '4':
-    MODE = 'PIDGEY MARATHON mode'
+    MODE = 'PIDGEY MARATHON'
+elif raw == '5':
+    MODE = 'PIDGEY MARATHON'
 else:
-    raise Exception('input (1~4)')
+    raise Exception('input (1~5)')
 MODENO = int(raw)
 
 raw = raw_input('RANDOM ACCESS to Pokestop??(y/n) >>>')
@@ -207,7 +207,7 @@ def encounterAndCatch(session, pokemon, thresholdP=0.5, limit=5, delay=2):
 def walkAndCatch(session, pokemon):
     if pokemon:
         logging.info("Catching %s:" % pokedex[pokemon.pokemon_data.pokemon_id])
-        session.walkTo(pokemon.latitude, pokemon.longitude, step=STEP*np.random.uniform(0.95,1.05))
+        session.walkTo(pokemon.latitude, pokemon.longitude, step=getStep())
         logging.info(encounterAndCatch(session, pokemon))
 
 
@@ -260,7 +260,7 @@ def walkAndSpin(session, fort):
         logging.info("Spinning the Fort \"%s\":" % details.name)
 
         # Walk over
-        session.walkTo(fort.latitude, fort.longitude, step=STEP*np.random.uniform(0.95,1.05))
+        session.walkTo(fort.latitude, fort.longitude, step=getStep())
         # Give it a spin
         fortResponse = session.getFortSearch(fort)
         logging.info(fortResponse)
@@ -367,6 +367,8 @@ def cleanInventory(session):
         if limit in bag and bag[limit] > limited[limit]:
             session.recycleItem(limit, bag[limit] - limited[limit])
 
+def getStep(p=1):
+    return STEP * np.random.uniform(0.5,1.0) * p
 
 # Basic bot
 def simpleBot(session):
@@ -447,8 +449,11 @@ if __name__ == '__main__':
 
         # General
         getProfile(session)
+        time.sleep(2)
         getInventory(session)
+        time.sleep(2)
         cleanInventory(session)
+        time.sleep(2)
         setEgg(session)
 
         for i in range(ROUND):
@@ -463,17 +468,34 @@ if __name__ == '__main__':
             if IS_RESET_LOCATION and i>0 and i%RESET_LOCATION_ROUND==0:
                 print 'RESET LOCATION:',args.location
                 lat, lon = map(float,args.location.split(','))
-                session.walkTo(lat, lon, step=STEP*np.random.uniform(0.95,1.05)*0.7)
+                session.walkTo(lat, lon, step=getStep(0.7))
             
-            # Pokemon related
-            if not POKESTOP_MARATHON:
-                cleanPokemon(session) # BE SURE TO COMFIRM IF IT'S OK TO RUN THIS!
-                pokemon = findBestPokemon(session)
-                walkAndCatch(session, pokemon)
+            try:
+                # Pokemon related
+                if not POKESTOP_MARATHON:
+                    cleanPokemon(session) # BE SURE TO COMFIRM IF IT'S OK TO RUN THIS!
+                    pokemon = findBestPokemon(session)
+                    time.sleep(2)
+                    walkAndCatch(session, pokemon)
+        
+                # Pokestop related
+                fort = findClosestFort(session)
+                time.sleep(2)
+                walkAndSpin(session, fort)
+            
+            # Catch problems and reauthenticate
+            except GeneralPogoException as e:
+                logging.critical('GeneralPogoException raised: %s', e)
+                session = poko_session.reauthenticate(session)
+                time.sleep(COOLDOWN)
+                COOLDOWN *= 2
     
-            # Pokestop related
-            fort = findClosestFort(session)
-            walkAndSpin(session, fort)
+            except Exception as e:
+                logging.critical('Exception raised: %s', e)
+                session = poko_session.reauthenticate(session)
+                time.sleep(COOLDOWN)
+                COOLDOWN *= 2
+                
             
             if i%50==0:
                 cleanInventory(session)
